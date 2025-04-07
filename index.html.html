@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Marketing Finance Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+</head>
+<body>
+  <div id="root" class="min-h-screen bg-gray-100"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Google Sheets API Configuration
+    const CLIENT_ID = 'YOUR_CLIENT_ID_HERE'; // Replace with your Google Cloud Client ID
+    const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your API Key
+    const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Replace with your Google Sheet ID
+    const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+    // Load Google API Client
+    function loadGapi() {
+      gapi.load('client:auth2', () => {
+        gapi.client.init({
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          scope: SCOPES,
+          discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+        }).then(() => {
+          console.log('GAPI client initialized');
+        });
+      });
+    }
+
+    // Transaction Component
+    const TransactionItem = ({ transaction }) => (
+      <li className={`flex justify-between p-2 mb-2 rounded ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
+        <span>{transaction.description} ({transaction.category}) - {transaction.user}</span>
+        <span>${transaction.amount.toFixed(2)}</span>
+      </li>
+    );
+
+    // Main App Component
+    const FinanceTracker = () => {
+      const [currentUser, setCurrentUser] = useState('User1');
+      const [transactions, setTransactions] = useState([]);
+      const [amount, setAmount] = useState('');
+      const [description, setDescription] = useState('');
+      const [category, setCategory] = useState('General');
+      const [type, setType] = useState('income');
+      const [isSignedIn, setIsSignedIn] = useState(false);
+
+      const users = ['User1', 'User2', 'User3'];
+      const categories = ['General', 'Client Payments', 'Ad Spend', 'Software', 'Salaries', 'Equipment'];
+
+      // Initialize Google API and check sign-in status
+      useEffect(() => {
+        loadGapi();
+        const checkAuth = () => {
+          if (gapi.auth2) {
+            const auth = gapi.auth2.getAuthInstance();
+            setIsSignedIn(auth.isSignedIn.get());
+            auth.isSignedIn.listen(setIsSignedIn);
+          }
+        };
+        setTimeout(checkAuth, 1000); // Wait for gapi to load
+      }, []);
+
+      // Fetch transactions from Google Sheets
+      const fetchTransactions = async () => {
+        if (!isSignedIn) return;
+        try {
+          const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Sheet1!A2:E', // Adjust range as needed
+          });
+          const rows = response.result.values || [];
+          const loadedTransactions = rows.map(row => ({
+            id: row[0],
+            amount: parseFloat(row[1]),
+            description: row[2],
+            category: row[3],
+            type: row[4],
+            user: row[5] || 'Unknown'
+          }));
+          setTransactions(loadedTransactions);
+        } catch (error) {
+          console.error('Error fetching transactions:', error);
+        }
+      };
+
+      useEffect(() => {
+        if (isSignedIn) fetchTransactions();
+      }, [isSignedIn]);
+
+      // Sign in to Google
+      const handleSignIn = () => {
+        gapi.auth2.getAuthInstance().signIn();
+      };
+
+      // Add transaction to Google Sheets
+      const addTransaction = async (e) => {
+        e.preventDefault();
+        if (!amount || !description || !isSignedIn) return;
+
+        const newTransaction = {
+          id: Date.now(),
+          amount: parseFloat(amount),
+          description,
+          category,
+          type,
+          user: currentUser
+        };
+
+        try {
+          await gapi.client.sheets.spreadsheets.values.append({
+            spreadsheetId: SPREADSHEET_ID,
+            range: 'Sheet1!A:E', // Append to the bottom
+            valueInputOption: 'USER_ENTERED',
+            resource: {
+              values: [[newTransaction.id, newTransaction.amount, newTransaction.description, newTransaction.category, newTransaction.type, newTransaction.user]]
+            }
+          });
+          setTransactions([...transactions, newTransaction]);
+          setAmount('');
+          setDescription('');
+          setCategory('General');
+          setType('income');
+        } catch (error) {
+          console.error('Error adding transaction:', error);
+        }
+      };
+
+      const calculateSummary = () => {
+        const income = transactions
+          .filter(t => t.type === 'income' && t.user === currentUser)
+          .reduce((sum, t) => sum + t.amount, 0);
+        const expenses = transactions
+          .filter(t => t.type === 'expense' && t.user === currentUser)
+          .reduce((sum, t) => sum + t.amount, 0);
+        return { income, expenses, balance: income - expenses };
+      };
+
+      const summary = calculateSummary();
+
+      return (
+        <div className="container mx-auto p-4 max-w-2xl">
+          <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
+            Digital Marketing Finance Tracker
+          </h1>
+
+          {!isSignedIn && (
+            <div className="bg-white p-4 rounded-lg shadow mb-6">
+              <button
+                onClick={handleSignIn}
+                className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
+              >
+                Sign in with Google
+              </button>
+            </div>
+          )}
+
+          {isSignedIn && (
+            <>
+              <div className="bg-white p-4 rounded-lg shadow mb-6">
+                <h2 className="text-xl font-semibold mb-4">Select User</h2>
+                <select
+                  value={currentUser}
+                  onChange={(e) => setCurrentUser(e.target.value)}
+                  className="w-full p-2 border rounded"
+                >
+                  {users.map(user => (
+                    <option key={user} value={user}>{user}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg shadow mb-6">
+                <h2 className="text-xl font-semibold mb-4">Add Transaction</h2>
+                <div className="space-y-4">
+                  <input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Amount"
+                    className="w-full p-2 border rounded"
+                    step="0.01"
+                  />
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Description"
+                    className="w-full p-2 border rounded"
+                  />
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  >
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <div className="flex space-x-4">
+                    <label>
+                      <input
+                        type="radio"
+                        value="income"
+                        checked={type === 'income'}
+                        onChange={() => setType('income')}
+                      /> Income
+                    </label>
+                    <label>
+                      <input
+                        type="radio"
+                        value="expense"
+                        checked={type === 'expense'}
+                        onChange={() => setType('expense')}
+                      /> Expense
+                    </label>
+                  </div>
+                  <button
+                    onClick={addTransaction}
+                    className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                  >
+                    Add Transaction
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg shadow mb-6">
+                <h2 className="text-xl font-semibold mb-4">Summary for {currentUser}</h2>
+                <p className="text-green-600">Total Income: ${summary.income.toFixed(2)}</p>
+                <p className="text-red-600">Total Expenses: ${summary.expenses.toFixed(2)}</p>
+                <p className={`text-lg font-bold ${summary.balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                  Net Balance: ${summary.balance.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg shadow">
+                <h2 className="text-xl font-semibold mb-4">Transactions for {currentUser}</h2>
+                {transactions.filter(t => t.user === currentUser).length === 0 ? (
+                  <p className="text-gray-500">No transactions yet.</p>
+                ) : (
+                  <ul>
+                    {transactions.filter(t => t.user === currentUser).map(transaction => (
+                      <TransactionItem key={transaction.id} transaction={transaction} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // Render the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FinanceTracker />);
+  </script>
+</body>
+</html>
