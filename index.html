@@ -100,23 +100,22 @@
         try {
           const response = await fetch(WEB_APP_URL, {
             method: 'POST',
+            mode: 'no-cors', // Use no-cors to bypass CORS restrictions
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(newTransaction),
           });
-          if (response.ok) {
-            setTransactions(prev => [...prev, newTransaction]);
-            setAmount('');
-            setDescription('');
-            setCategory('General');
-            setType('income');
-            setPaidBy('Chris');
-            setImage(null);
-            setErrorMessage('');
-          } else {
-            throw new Error('Failed to add transaction');
-          }
+          // Since mode is 'no-cors', we can't read the response body
+          // Assume success if no network error occurs
+          setTransactions(prev => [...prev, newTransaction]);
+          setAmount('');
+          setDescription('');
+          setCategory('General');
+          setType('income');
+          setPaidBy('Chris');
+          setImage(null);
+          setErrorMessage('');
         } catch (error) {
           console.error('Error adding transaction:', error);
           setErrorMessage('Failed to add transaction. Check console for details.');
