@@ -1,63 +1,42 @@
 # LAVUE Finance Tracker
 
-This is a web-based finance tracker for Lavueads' digital marketing team, hosted on GitHub Pages. It allows team members to log income and expenses, track who paid, calculate owes, and attach images, with data stored in a Google Sheet.
+This is a web-based finance tracker for Lavueads' team, hosted on GitHub Pages, integrating with Google Sheets for transaction tracking.
 
 ## Live Site
-Visit the tracker at: [https://lavueads.github.io/Lavue-Teams-/](https://lavueads.github.io/Lavue-Teams-/)
+[https://lavueads.github.io/Lavue-Teams-/](https://lavueads.github.io/Lavue-Teams-/)
 
 ## Features
-- Add transactions (income/expense) with amount, description, category, user, who paid, and optional image attachment.
-- View a summary of total income, expenses, and net balance per user.
-- Track who paid expenses and calculate what each user owes.
-- Data persists in a Google Sheet: [Lavue Teams Sheet](https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit?usp=sharing).
-- Built with React, Tailwind CSS, and the Google Sheets API.
+- Add transactions with amount, description, category, type, user, who paid, and image attachment.
+- View summary, who paid expenses, and owes list per user.
+- Data stored in Google Sheet: [Lavue Teams Sheet](https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit?usp=sharing).
+- Direct access: No sign-in required; anyone with the link can add transactions.
 
 ## Setup Instructions
+### Google Sheets
+- Sheet: [https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit](https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit).
+- `Sheet1` headers: `ID | Amount | Description | Category | Type | User | Paid By | Image`.
+- Share settings: Set to "Anyone with the link" > "Editor" (required for direct writes).
 
-### Prerequisites
-- A Google account with access to the Lavue Teams Google Sheet.
-- A GitHub account (optional for contributors).
-
-### Google Sheets Setup
-1. **Access the Google Sheet**:
-   - Open: [https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit](https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit).
-   - Ensure headers in `Sheet1` (row 1) are: `ID`, `Amount`, `Description`, `Category`, `Type`, `User`, `Paid By`, `Image`.
-
-2. **Share the Sheet**:
-   - Share with team members (e.g., set to "Editor" for specific emails like `team@lavueads.com`).
-
-### Google Cloud Setup
-1. **Verify Project**:
-   - Go to [Google Cloud Console](https://console.cloud.google.com/).
-   - Select the project using Client ID: `308700316236-2dr5vdlv1spptpoju5npimug17scct1b.apps.googleusercontent.com`.
-2. **Enable Sheets API**:
-   - Ensure "Google Sheets API" is enabled in "Library".
-3. **Check OAuth Credentials**:
-   - In "Credentials", verify the OAuth 2.0 Client ID has `https://lavueads.github.io` in "Authorized JavaScript origins".
-
-### Deploy to GitHub Pages
-1. Ensure `index.html` is uploaded to [Lavue-Teams-](https://github.com/Lavueads/Lavue-Teams-).
-2. Go to "Settings" > "Pages".
-3. Confirm "Source" is `main` branch and `/ (root)` folder.
-4. Site is live at `https://lavueads.github.io/Lavue-Teams-/`.
+### Google Cloud
+- API Key: `AIzaSyC1Y8p66Vm0oVxyLpmdnnBARXkk7o5Iya8` (included in `index.html`).
+- **Security Note**: The API key is exposed in client-side code. In Google Cloud, restrict it to the Sheets API and specific referrers (e.g., `lavueads.github.io/*`).
 
 ## Usage
 1. Visit [https://lavueads.github.io/Lavue-Teams-/](https://lavueads.github.io/Lavue-Teams-/).
-2. Click "Sign in with Google" and authenticate with a Sheet-accessible account.
-3. Select your name from the "Select User" dropdown.
-4. Add a transaction:
+2. Select your name from the "Select User" dropdown.
+3. Add a transaction:
    - Enter amount, description, category, type, who paid, and optionally attach an image.
    - Click "Add Transaction".
-5. View summary, expense details (who paid, owes), and transactions.
+4. View summary, expense details (who paid, owes), and transactions.
+
+## Security Warning
+- The Google Sheet is publicly editable ("Anyone with the link can edit"). Anyone with the Sheet link can modify or delete data.
+- The API key is exposed in `index.html`. For a secure app, add authentication and a backend to control access.
 
 ## Troubleshooting
-- **Sign-In Fails**: Ensure `https://lavueads.github.io` is in "Authorized JavaScript origins".
 - **Data Not Saving/Retrieving**: Verify Spreadsheet ID (`1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc`) and Sheet permissions.
-- **Contact**: Email `team@lavueads.com` for help.
-
-## Security Note
-- The `client_id` is exposed in `index.html`. For production, use a backend to secure API calls.
-- Image attachments are stored as base64 strings in the Sheet; displaying them requires additional setup.
+- **API Key Errors**: Ensure the key is restricted to the Sheets API in Google Cloud.
+- **Contact**: Email `lavueadvertisements@gmail.com` for help.
 
 ## Contributing
 - Update `users` array in `index.html` with team names (e.g., `['Alice', 'Bob', 'Charlie']`).
