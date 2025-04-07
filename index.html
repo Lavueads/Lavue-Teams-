@@ -21,13 +21,17 @@
     const SPREADSHEET_ID = '1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc';
 
     // Load Google API Client
-    function loadGapi() {
+    function loadGapi(setIsGapiLoaded) {
       gapi.load('client', () => {
         gapi.client.init({
           apiKey: API_KEY,
           discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         }).then(() => {
           console.log('GAPI client initialized');
+          setIsGapiLoaded(true);
+        }).catch(error => {
+          console.error('GAPI initialization failed:', error);
+          setIsGapiLoaded(false);
         });
       });
     }
@@ -36,7 +40,7 @@
     const TransactionItem = ({ transaction }) => (
       <li className={`flex justify-between p-2 mb-2 rounded ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
         <span>{transaction.description} ({transaction.category}) - Paid by: {transaction.paidBy} {transaction.image ? '(Image Attached)' : ''}</span>
-        <span>${transaction.amount.toFixed(2)}</span>
+        <span>₹{transaction.amount.toFixed(2)}</span>
       </li>
     );
 
@@ -50,6 +54,8 @@
       const [type, setType] = useState('income');
       const [paidBy, setPaidBy] = useState('Chris');
       const [image, setImage] = useState(null);
+      const [isGapiLoaded, setIsGapiLoaded] = useState(false);
+      const [errorMessage, setErrorMessage] = useState('');
 
       const users = ['Chris', 'Karun', 'Vinayak'];
       const categories = [
@@ -57,11 +63,16 @@
         'Equipment', 'App Purchase', 'Travel', 'Food', 'Equipment Rent'
       ];
 
-      // Initialize Google API
+      // Initialize Google API and fetch transactions
       useEffect(() => {
-        loadGapi();
-        fetchTransactions();
+        loadGapi(setIsGapiLoaded);
       }, []);
+
+      useEffect(() => {
+        if (isGapiLoaded) {
+          fetchTransactions();
+        }
+      }, [isGapiLoaded]);
 
       // Fetch transactions from Google Sheets
       const fetchTransactions = async () => {
@@ -73,17 +84,19 @@
           const rows = response.result.values || [];
           const loadedTransactions = rows.map(row => ({
             id: row[0],
-            amount: parseFloat(row[1]),
-            description: row[2],
-            category: row[3],
-            type: row[4],
+            amount: parseFloat(row[1]) || 0,
+            description: row[2] || '',
+            category: row[3] || 'General',
+            type: row[4] || 'income',
             user: row[5] || 'Unknown',
             paidBy: row[6] || 'Unknown',
-            image: row[7] || null
+            image: row[7] || ''
           }));
           setTransactions(loadedTransactions);
+          setErrorMessage('');
         } catch (error) {
           console.error('Error fetching transactions:', error);
+          setErrorMessage('Failed to fetch transactions. Check console for details.');
         }
       };
 
@@ -99,13 +112,20 @@
         }
       };
 
-      // Add transaction to Google Sheets
+      // Add transaction to Google Sheets and update state
       const addTransaction = async (e) => {
         e.preventDefault();
-        if (!amount || !description) return;
+        if (!amount || !description) {
+          setErrorMessage('Amount and description are required.');
+          return;
+        }
+        if (!isGapiLoaded) {
+          setErrorMessage('Google API not loaded. Please refresh the page.');
+          return;
+        }
 
         const newTransaction = {
-          id: Date.now(),
+          id: Date.now().toString(),
           amount: parseFloat(amount),
           description,
           category,
@@ -124,15 +144,17 @@
               values: [[newTransaction.id, newTransaction.amount, newTransaction.description, newTransaction.category, newTransaction.type, newTransaction.user, newTransaction.paidBy, newTransaction.image]]
             }
           });
-          setTransactions([...transactions, newTransaction]);
+          setTransactions(prev => [...prev, newTransaction]);
           setAmount('');
           setDescription('');
           setCategory('General');
           setType('income');
           setPaidBy('Chris');
           setImage(null);
+          setErrorMessage('');
         } catch (error) {
           console.error('Error adding transaction:', error);
+          setErrorMessage('Failed to add transaction. Check console for details.');
         }
       };
 
@@ -167,6 +189,12 @@
           <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
             LAVUE Finance Tracker
           </h1>
+
+          {errorMessage && (
+            <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">
+              {errorMessage}
+            </div>
+          )}
 
           <div className="bg-white p-4 rounded-lg shadow mb-6">
             <h2 className="text-xl font-semibold mb-4">Select User</h2>
@@ -253,10 +281,10 @@
 
           <div className="bg-white p-4 rounded-lg shadow mb-6">
             <h2 className="text-xl font-semibold mb-4">Summary for {currentUser}</h2>
-            <p className="text-green-600">Total Income: ${summary.income.toFixed(2)}</p>
-            <p className="text-red-600">Total Expenses: ${summary.expenses.toFixed(2)}</p>
+            <p className="text-green-600">Total Income: ₹{summary.income.toFixed(2)}</p>
+            <p className="text-red-600">Total Expenses: ₹{summary.expenses.toFixed(2)}</p>
             <p className={`text-lg font-bold ${summary.balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-              Net Balance: ${summary.balance.toFixed(2)}
+              Net Balance: ₹{summary.balance.toFixed(2)}
             </p>
           </div>
 
@@ -265,13 +293,13 @@
             <p><strong>Expenses Paid by Others for {currentUser}:</strong></p>
             <ul>
               {transactions.filter(t => t.type === 'expense' && t.user === currentUser && t.paidBy !== currentUser).map(t => (
-                <li key={t.id}>{t.paidBy} paid ${t.amount.toFixed(2)} for {t.description}</li>
+                <li key={t.id}>{t.paidBy} paid ₹{t.amount.toFixed(2)} for {t.description}</li>
               ))}
             </ul>
             <p><strong>{currentUser} Owes:</strong></p>
             <ul>
               {Object.entries(owes[currentUser] || {}).map(([payer, amount]) => (
-                <li key={payer}>{payer}: ${amount.toFixed(2)}</li>
+                <li key={payer}>{payer}: ₹{amount.toFixed(2)}</li>
               ))}
             </ul>
           </div>
