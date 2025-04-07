@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Marketing Finance Tracker</title>
+  <title>LAVUE Finance Tracker</title>
   <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
@@ -17,16 +17,14 @@
     const { useState, useEffect } = React;
 
     // Google Sheets API Configuration
-    const CLIENT_ID = '308700316236-2dr5vdlv1spptpoju5npimug17scct1b.apps.googleusercontent.com'; // Replace with your Google Cloud Client ID
-    const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your API Key
-    const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID_HERE'; // Replace with your Google Sheet ID
+    const CLIENT_ID = '308700316236-2dr5vdlv1spptpoju5npimug17scct1b.apps.googleusercontent.com';
+    const SPREADSHEET_ID = '1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc';
     const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
     // Load Google API Client
     function loadGapi() {
       gapi.load('client:auth2', () => {
         gapi.client.init({
-          apiKey: API_KEY,
           clientId: CLIENT_ID,
           scope: SCOPES,
           discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
@@ -39,7 +37,7 @@
     // Transaction Component
     const TransactionItem = ({ transaction }) => (
       <li className={`flex justify-between p-2 mb-2 rounded ${transaction.type === 'income' ? 'bg-green-100' : 'bg-red-100'}`}>
-        <span>{transaction.description} ({transaction.category}) - {transaction.user}</span>
+        <span>{transaction.description} ({transaction.category}) - Paid by: {transaction.paidBy} {transaction.image ? '(Image Attached)' : ''}</span>
         <span>${transaction.amount.toFixed(2)}</span>
       </li>
     );
@@ -52,10 +50,15 @@
       const [description, setDescription] = useState('');
       const [category, setCategory] = useState('General');
       const [type, setType] = useState('income');
+      const [paidBy, setPaidBy] = useState('User1');
+      const [image, setImage] = useState(null);
       const [isSignedIn, setIsSignedIn] = useState(false);
 
-      const users = ['User1', 'User2', 'User3'];
-      const categories = ['General', 'Client Payments', 'Ad Spend', 'Software', 'Salaries', 'Equipment'];
+      const users = ['User1', 'User2', 'User3']; // Update with actual team names
+      const categories = [
+        'General', 'Client Payments', 'Ad Spend', 'Software', 'Salaries', 
+        'Equipment', 'App Purchase', 'Travel', 'Food', 'Equipment Rent'
+      ];
 
       // Initialize Google API and check sign-in status
       useEffect(() => {
@@ -67,7 +70,7 @@
             auth.isSignedIn.listen(setIsSignedIn);
           }
         };
-        setTimeout(checkAuth, 1000); // Wait for gapi to load
+        setTimeout(checkAuth, 1000);
       }, []);
 
       // Fetch transactions from Google Sheets
@@ -76,7 +79,7 @@
         try {
           const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Sheet1!A2:E', // Adjust range as needed
+            range: 'Sheet1!A2:G',
           });
           const rows = response.result.values || [];
           const loadedTransactions = rows.map(row => ({
@@ -85,7 +88,9 @@
             description: row[2],
             category: row[3],
             type: row[4],
-            user: row[5] || 'Unknown'
+            user: row[5] || 'Unknown',
+            paidBy: row[6] || 'Unknown',
+            image: row[7] || null
           }));
           setTransactions(loadedTransactions);
         } catch (error) {
@@ -102,6 +107,18 @@
         gapi.auth2.getAuthInstance().signIn();
       };
 
+      // Handle image upload
+      const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImage(reader.result); // Base64 string
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
       // Add transaction to Google Sheets
       const addTransaction = async (e) => {
         e.preventDefault();
@@ -113,16 +130,18 @@
           description,
           category,
           type,
-          user: currentUser
+          user: currentUser,
+          paidBy,
+          image: image || ''
         };
 
         try {
           await gapi.client.sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Sheet1!A:E', // Append to the bottom
+            range: 'Sheet1!A:G',
             valueInputOption: 'USER_ENTERED',
             resource: {
-              values: [[newTransaction.id, newTransaction.amount, newTransaction.description, newTransaction.category, newTransaction.type, newTransaction.user]]
+              values: [[newTransaction.id, newTransaction.amount, newTransaction.description, newTransaction.category, newTransaction.type, newTransaction.user, newTransaction.paidBy, newTransaction.image]]
             }
           });
           setTransactions([...transactions, newTransaction]);
@@ -130,6 +149,8 @@
           setDescription('');
           setCategory('General');
           setType('income');
+          setPaidBy('User1');
+          setImage(null);
         } catch (error) {
           console.error('Error adding transaction:', error);
         }
@@ -145,12 +166,26 @@
         return { income, expenses, balance: income - expenses };
       };
 
+      const calculateOwes = () => {
+        const owes = {};
+        transactions
+          .filter(t => t.type === 'expense' && t.user !== t.paidBy)
+          .forEach(t => {
+            const debtor = t.user;
+            const payer = t.paidBy;
+            owes[debtor] = owes[debtor] || {};
+            owes[debtor][payer] = (owes[debtor][payer] || 0) + t.amount / 2; // Split evenly for simplicity
+          });
+        return owes;
+      };
+
       const summary = calculateSummary();
+      const owes = calculateOwes();
 
       return (
         <div className="container mx-auto p-4 max-w-2xl">
           <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
-            Digital Marketing Finance Tracker
+            LAVUE Finance Tracker
           </h1>
 
           {!isSignedIn && (
@@ -224,6 +259,22 @@
                       /> Expense
                     </label>
                   </div>
+                  <select
+                    value={paidBy}
+                    onChange={(e) => setPaidBy(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  >
+                    <option value="">Who Paid?</option>
+                    {users.map(user => (
+                      <option key={user} value={user}>{user}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full p-2 border rounded"
+                  />
                   <button
                     onClick={addTransaction}
                     className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
@@ -240,6 +291,22 @@
                 <p className={`text-lg font-bold ${summary.balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
                   Net Balance: ${summary.balance.toFixed(2)}
                 </p>
+              </div>
+
+              <div className="bg-white p-4 rounded-lg shadow mb-6">
+                <h2 className="text-xl font-semibold mb-4">Expense Details</h2>
+                <p><strong>Expenses Paid by Others for {currentUser}:</strong></p>
+                <ul>
+                  {transactions.filter(t => t.type === 'expense' && t.user === currentUser && t.paidBy !== currentUser).map(t => (
+                    <li key={t.id}>{t.paidBy} paid ${t.amount.toFixed(2)} for {t.description}</li>
+                  ))}
+                </ul>
+                <p><strong>{currentUser} Owes:</strong></p>
+                <ul>
+                  {Object.entries(owes[currentUser] || {}).map(([payer, amount]) => (
+                    <li key={payer}>{payer}: ${amount.toFixed(2)}</li>
+                  ))}
+                </ul>
               </div>
 
               <div className="bg-white p-4 rounded-lg shadow">
