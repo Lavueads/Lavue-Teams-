@@ -42,16 +42,16 @@
 
     // Main App Component
     const FinanceTracker = () => {
-      const [currentUser, setCurrentUser] = useState('User1');
+      const [currentUser, setCurrentUser] = useState('Chris');
       const [transactions, setTransactions] = useState([]);
       const [amount, setAmount] = useState('');
       const [description, setDescription] = useState('');
       const [category, setCategory] = useState('General');
       const [type, setType] = useState('income');
-      const [paidBy, setPaidBy] = useState('User1');
+      const [paidBy, setPaidBy] = useState('Chris');
       const [image, setImage] = useState(null);
 
-      const users = ['User1', 'User2', 'User3'];
+      const users = ['Chris', 'Karun', 'Vinayak'];
       const categories = [
         'General', 'Client Payments', 'Ad Spend', 'Software', 'Salaries', 
         'Equipment', 'App Purchase', 'Travel', 'Food', 'Equipment Rent'
@@ -129,7 +129,7 @@
           setDescription('');
           setCategory('General');
           setType('income');
-          setPaidBy('User1');
+          setPaidBy('Chris');
           setImage(null);
         } catch (error) {
           console.error('Error adding transaction:', error);
