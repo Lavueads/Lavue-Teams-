@@ -3,7 +3,7 @@
 This is a web-based finance tracker for Lavueads' digital marketing team, hosted on GitHub Pages. It allows team members to log income and expenses, track who paid, calculate owes, and attach images, with data stored and managed via a Google Apps Script web app.
 
 ## Live Site
-Visit the tracker at: [[invalid url, do not cite])
+Visit the tracker at: [https://lavueads.github.io/Lavue-Teams-/](https://lavueads.github.io/Lavue-Teams-/)
 
 ## Features
 - Add transactions (income/expense) with amount, description, category, user, who paid, and optional image attachment.
@@ -17,12 +17,12 @@ Visit the tracker at: [[invalid url, do not cite])
 
 ### Google Sheets Setup
 1. **Access the Google Sheet**:
-   - Open: [[invalid url, do not cite]).
+   - Open: [https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit](https://docs.google.com/spreadsheets/d/1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc/edit).
    - Ensure headers in `Sheet1` (row 1) are: `ID`, `Amount`, `Description`, `Category`, `Type`, `User`, `Paid By`, `Image`.
 
 2. **Set Up Google Apps Script**:
    - In the Google Sheet, go to `Extensions` > `Apps Script`.
-   - Replace the default code with the provided script:
+   - Replace the default code with the following script:
      ```javascript
      function doPost(e) {
        var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
@@ -47,24 +47,26 @@ Visit the tracker at: [[invalid url, do not cite])
        return ContentService.createTextOutput(JSON.stringify(jsonData)).setMimeType(ContentService.MimeType.JSON);
      }
      ```
-   - Save and deploy as a web app:
-     - Click `Deploy` > `New deployment`.
-     - Select `Web app`.
-     - Set `Execute as` to `Me`.
-     - Set `Who has access` to `Anyone` (for testing; restrict later if needed).
-     - Deploy and copy the web app URL (e.g., `[invalid url, do not cite]).
+   - Save the script.
+
+3. **Deploy as Web App**:
+   - Click `Deploy` > `New deployment`.
+   - Select `Web app`.
+   - Set `Execute as` to `Me` (your Google account).
+   - Set `Who has access` to `Anyone` (for testing; restrict later if needed).
+   - Click `Deploy`, authorize if prompted, and copy the web app URL (e.g., `https://script.google.com/macros/s/YOUR_WEB_APP_ID/exec`).
 
 ### Update the Code
-- Open `index.html` in the repository and replace `YOUR_WEB_APP_ID` in `const WEB_APP_URL = '[invalid url, do not cite] with your actual web app URL.
+- Open `index.html` in the repository and replace `'YOUR_WEB_APP_URL_HERE'` in the line `const WEB_APP_URL = 'YOUR_WEB_APP_URL_HERE';` with the actual web app URL you copied.
 
 ### Deploy to GitHub Pages
 1. Ensure `index.html` is uploaded to [Lavue-Teams-](https://github.com/Lavueads/Lavue-Teams-).
 2. Go to "Settings" > "Pages".
 3. Confirm "Source" is `main` branch and `/ (root)` folder.
-4. Site is live at `[invalid url, do not cite].
+4. The site will be live at `https://lavueads.github.io/Lavue-Teams-/`.
 
 ## Usage
-1. Visit [[invalid url, do not cite]).
+1. Visit [https://lavueads.github.io/Lavue-Teams-/](https://lavueads.github.io/Lavue-Teams-/).
 2. Select your name from the "Select User" dropdown (options: Chris, Karun, Vinayak).
 3. Add a transaction:
    - Enter amount, description, category, type, who paid, and optionally attach an image.
@@ -79,6 +81,7 @@ Visit the tracker at: [[invalid url, do not cite])
 ## Troubleshooting
 - **Data Not Saving/Retrieving**: Ensure the web app URL is correctly set in `index.html` and that the Apps Script is deployed properly.
 - **CORS Issues**: If cross-origin errors occur, check the web app's deployment settings.
+- **Blank Page**: Verify the web app URL is set and check the browser console for errors (F12 > Console).
 - **Contact**: Email `lavueadvertisements@gmail.com` for assistance.
 
 ## Contributing
