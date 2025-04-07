@@ -17,16 +17,14 @@
     const { useState, useEffect } = React;
 
     // Google Sheets API Configuration
-    const CLIENT_ID = '308700316236-2dr5vdlv1spptpoju5npimug17scct1b.apps.googleusercontent.com';
+    const API_KEY = 'AIzaSyC1Y8p66Vm0oVxyLpmdnnBARXkk7o5Iya8';
     const SPREADSHEET_ID = '1mTI6kLZ7KJVejhrfQPRLIZ77kzDt4kYXCl0lnvm0QOc';
-    const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
     // Load Google API Client
     function loadGapi() {
-      gapi.load('client:auth2', () => {
+      gapi.load('client', () => {
         gapi.client.init({
-          clientId: CLIENT_ID,
-          scope: SCOPES,
+          apiKey: API_KEY,
           discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
         }).then(() => {
           console.log('GAPI client initialized');
@@ -52,34 +50,25 @@
       const [type, setType] = useState('income');
       const [paidBy, setPaidBy] = useState('User1');
       const [image, setImage] = useState(null);
-      const [isSignedIn, setIsSignedIn] = useState(false);
 
-      const users = ['User1', 'User2', 'User3']; // Update with actual team names
+      const users = ['User1', 'User2', 'User3'];
       const categories = [
         'General', 'Client Payments', 'Ad Spend', 'Software', 'Salaries', 
         'Equipment', 'App Purchase', 'Travel', 'Food', 'Equipment Rent'
       ];
 
-      // Initialize Google API and check sign-in status
+      // Initialize Google API
       useEffect(() => {
         loadGapi();
-        const checkAuth = () => {
-          if (gapi.auth2) {
-            const auth = gapi.auth2.getAuthInstance();
-            setIsSignedIn(auth.isSignedIn.get());
-            auth.isSignedIn.listen(setIsSignedIn);
-          }
-        };
-        setTimeout(checkAuth, 1000);
+        fetchTransactions();
       }, []);
 
       // Fetch transactions from Google Sheets
       const fetchTransactions = async () => {
-        if (!isSignedIn) return;
         try {
           const response = await gapi.client.sheets.spreadsheets.values.get({
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Sheet1!A2:G',
+            range: 'Sheet1!A2:H',
           });
           const rows = response.result.values || [];
           const loadedTransactions = rows.map(row => ({
@@ -98,22 +87,13 @@
         }
       };
 
-      useEffect(() => {
-        if (isSignedIn) fetchTransactions();
-      }, [isSignedIn]);
-
-      // Sign in to Google
-      const handleSignIn = () => {
-        gapi.auth2.getAuthInstance().signIn();
-      };
-
       // Handle image upload
       const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
           const reader = new FileReader();
           reader.onloadend = () => {
-            setImage(reader.result); // Base64 string
+            setImage(reader.result);
           };
           reader.readAsDataURL(file);
         }
@@ -122,7 +102,7 @@
       // Add transaction to Google Sheets
       const addTransaction = async (e) => {
         e.preventDefault();
-        if (!amount || !description || !isSignedIn) return;
+        if (!amount || !description) return;
 
         const newTransaction = {
           id: Date.now(),
@@ -138,7 +118,7 @@
         try {
           await gapi.client.sheets.spreadsheets.values.append({
             spreadsheetId: SPREADSHEET_ID,
-            range: 'Sheet1!A:G',
+            range: 'Sheet1!A:H',
             valueInputOption: 'USER_ENTERED',
             resource: {
               values: [[newTransaction.id, newTransaction.amount, newTransaction.description, newTransaction.category, newTransaction.type, newTransaction.user, newTransaction.paidBy, newTransaction.image]]
@@ -174,7 +154,7 @@
             const debtor = t.user;
             const payer = t.paidBy;
             owes[debtor] = owes[debtor] || {};
-            owes[debtor][payer] = (owes[debtor][payer] || 0) + t.amount / 2; // Split evenly for simplicity
+            owes[debtor][payer] = (owes[debtor][payer] || 0) + t.amount / 2;
           });
         return owes;
       };
@@ -188,141 +168,126 @@
             LAVUE Finance Tracker
           </h1>
 
-          {!isSignedIn && (
-            <div className="bg-white p-4 rounded-lg shadow mb-6">
-              <button
-                onClick={handleSignIn}
-                className="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600"
+          <div className="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 className="text-xl font-semibold mb-4">Select User</h2>
+            <select
+              value={currentUser}
+              onChange={(e) => setCurrentUser(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              {users.map(user => (
+                <option key={user} value={user}>{user}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 className="text-xl font-semibold mb-4">Add Transaction</h2>
+            <div className="space-y-4">
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Amount"
+                className="w-full p-2 border rounded"
+                step="0.01"
+              />
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Description"
+                className="w-full p-2 border rounded"
+              />
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-2 border rounded"
               >
-                Sign in with Google
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <div className="flex space-x-4">
+                <label>
+                  <input
+                    type="radio"
+                    value="income"
+                    checked={type === 'income'}
+                    onChange={() => setType('income')}
+                  /> Income
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    value="expense"
+                    checked={type === 'expense'}
+                    onChange={() => setType('expense')}
+                  /> Expense
+                </label>
+              </div>
+              <select
+                value={paidBy}
+                onChange={(e) => setPaidBy(e.target.value)}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">Who Paid?</option>
+                {users.map(user => (
+                  <option key={user} value={user}>{user}</option>
+                ))}
+              </select>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full p-2 border rounded"
+              />
+              <button
+                onClick={addTransaction}
+                className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+              >
+                Add Transaction
               </button>
             </div>
-          )}
+          </div>
 
-          {isSignedIn && (
-            <>
-              <div className="bg-white p-4 rounded-lg shadow mb-6">
-                <h2 className="text-xl font-semibold mb-4">Select User</h2>
-                <select
-                  value={currentUser}
-                  onChange={(e) => setCurrentUser(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  {users.map(user => (
-                    <option key={user} value={user}>{user}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 className="text-xl font-semibold mb-4">Summary for {currentUser}</h2>
+            <p className="text-green-600">Total Income: ${summary.income.toFixed(2)}</p>
+            <p className="text-red-600">Total Expenses: ${summary.expenses.toFixed(2)}</p>
+            <p className={`text-lg font-bold ${summary.balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              Net Balance: ${summary.balance.toFixed(2)}
+            </p>
+          </div>
 
-              <div className="bg-white p-4 rounded-lg shadow mb-6">
-                <h2 className="text-xl font-semibold mb-4">Add Transaction</h2>
-                <div className="space-y-4">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="Amount"
-                    className="w-full p-2 border rounded"
-                    step="0.01"
-                  />
-                  <input
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Description"
-                    className="w-full p-2 border rounded"
-                  />
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full p-2 border rounded"
-                  >
-                    {categories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                  <div className="flex space-x-4">
-                    <label>
-                      <input
-                        type="radio"
-                        value="income"
-                        checked={type === 'income'}
-                        onChange={() => setType('income')}
-                      /> Income
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        value="expense"
-                        checked={type === 'expense'}
-                        onChange={() => setType('expense')}
-                      /> Expense
-                    </label>
-                  </div>
-                  <select
-                    value={paidBy}
-                    onChange={(e) => setPaidBy(e.target.value)}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">Who Paid?</option>
-                    {users.map(user => (
-                      <option key={user} value={user}>{user}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full p-2 border rounded"
-                  />
-                  <button
-                    onClick={addTransaction}
-                    className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-                  >
-                    Add Transaction
-                  </button>
-                </div>
-              </div>
+          <div className="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 className="text-xl font-semibold mb-4">Expense Details</h2>
+            <p><strong>Expenses Paid by Others for {currentUser}:</strong></p>
+            <ul>
+              {transactions.filter(t => t.type === 'expense' && t.user === currentUser && t.paidBy !== currentUser).map(t => (
+                <li key={t.id}>{t.paidBy} paid ${t.amount.toFixed(2)} for {t.description}</li>
+              ))}
+            </ul>
+            <p><strong>{currentUser} Owes:</strong></p>
+            <ul>
+              {Object.entries(owes[currentUser] || {}).map(([payer, amount]) => (
+                <li key={payer}>{payer}: ${amount.toFixed(2)}</li>
+              ))}
+            </ul>
+          </div>
 
-              <div className="bg-white p-4 rounded-lg shadow mb-6">
-                <h2 className="text-xl font-semibold mb-4">Summary for {currentUser}</h2>
-                <p className="text-green-600">Total Income: ${summary.income.toFixed(2)}</p>
-                <p className="text-red-600">Total Expenses: ${summary.expenses.toFixed(2)}</p>
-                <p className={`text-lg font-bold ${summary.balance >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                  Net Balance: ${summary.balance.toFixed(2)}
-                </p>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg shadow mb-6">
-                <h2 className="text-xl font-semibold mb-4">Expense Details</h2>
-                <p><strong>Expenses Paid by Others for {currentUser}:</strong></p>
-                <ul>
-                  {transactions.filter(t => t.type === 'expense' && t.user === currentUser && t.paidBy !== currentUser).map(t => (
-                    <li key={t.id}>{t.paidBy} paid ${t.amount.toFixed(2)} for {t.description}</li>
-                  ))}
-                </ul>
-                <p><strong>{currentUser} Owes:</strong></p>
-                <ul>
-                  {Object.entries(owes[currentUser] || {}).map(([payer, amount]) => (
-                    <li key={payer}>{payer}: ${amount.toFixed(2)}</li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">Transactions for {currentUser}</h2>
-                {transactions.filter(t => t.user === currentUser).length === 0 ? (
-                  <p className="text-gray-500">No transactions yet.</p>
-                ) : (
-                  <ul>
-                    {transactions.filter(t => t.user === currentUser).map(transaction => (
-                      <TransactionItem key={transaction.id} transaction={transaction} />
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </>
-          )}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Transactions for {currentUser}</h2>
+            {transactions.filter(t => t.user === currentUser).length === 0 ? (
+              <p className="text-gray-500">No transactions yet.</p>
+            ) : (
+              <ul>
+                {transactions.filter(t => t.user === currentUser).map(transaction => (
+                  <TransactionItem key={transaction.id} transaction={transaction} />
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       );
     };
