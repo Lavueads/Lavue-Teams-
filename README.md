@@ -23,9 +23,9 @@ This is a web-based finance tracker for Lavueads' team, hosted on GitHub Pages, 
 
 ## Usage
 1. Visit [https://lavueads.github.io/Lavue-Teams-/](https://lavueads.github.io/Lavue-Teams-/).
-2. Select your name from the "Select User" dropdown.
+2. Select your name from the "Select User" dropdown (options: Chris, Karun, Vinayak).
 3. Add a transaction:
-   - Enter amount, description, category, type, who paid, and optionally attach an image.
+   - Enter amount, description, category, type, who paid (Chris, Karun, or Vinayak), and optionally attach an image.
    - Click "Add Transaction".
 4. View summary, expense details (who paid, owes), and transactions.
 
@@ -39,5 +39,5 @@ This is a web-based finance tracker for Lavueads' team, hosted on GitHub Pages, 
 - **Contact**: Email `lavueadvertisements@gmail.com` for help.
 
 ## Contributing
-- Update `users` array in `index.html` with team names (e.g., `['Alice', 'Bob', 'Charlie']`).
+- The `users` array in `index.html` is set to `['Chris', 'Karun', 'Vinayak']`. Update it with additional team names if needed.
 - Fork this repo, make changes, and submit a pull request.
