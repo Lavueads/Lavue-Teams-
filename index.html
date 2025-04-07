@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LAVUE Finance Tracker</title>
-  <script src="[invalid url, do not cite]
-  <script src="[invalid url, do not cite]
-  <script src="[invalid url, do not cite]
-  <script src="[invalid url, do not cite]
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
   <div id="root" class="min-h-screen bg-gray-100"></div>
@@ -15,7 +15,8 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzg_j90U6fAwTiSnYoQCB-WrahsvCMmPPLxwy3ES3kXJLAvEbmGvsvS5P_YoLjh_rE/exec'; // Replace with your actual web app URL
+    // Replace with your Google Apps Script Web App URL
+    const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzg_j90U6fAwTiSnYoQCB-WrahsvCMmPPLxwy3ES3kXJLAvEbmGvsvS5P_YoLjh_rE/exec';
 
     // Transaction Component
     const TransactionItem = ({ transaction }) => (
@@ -43,12 +44,12 @@
         'Equipment', 'App Purchase', 'Travel', 'Food', 'Equipment Rent'
       ];
 
-      // Fetch transactions from web app
+      // Fetch transactions on mount
       useEffect(() => {
         fetchTransactions();
       }, []);
 
-      // Fetch transactions
+      // Fetch transactions from web app
       const fetchTransactions = async () => {
         try {
           const response = await fetch(WEB_APP_URL);
